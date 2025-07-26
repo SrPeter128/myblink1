@@ -36,15 +36,16 @@ class BlinkApp(App):
             Button("🟡 Gelb", id="yellow", variant="warning"),
             Button("🔴 Rot", id="red", variant="error"),
         )
-        yield Static("Automatikmodus:")
-        yield Switch(name="Automatikmodus", value=True, id="auto_switch")
-        yield Static("OK", id="status_text")
+        #yield Static("Override:")
+        #yield Switch(name="Override", value=True, id="Override_switch")
+        #yield Static("OK", id="status_text")
         yield Static("Aktuelle Farbe: ⚪", id="status")
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if self.automatik:
-            return  # manuelles Umschalten deaktiviert im Automatikmodus
+        
+        #if not self.automatik:
+        #    return  # manuelles Umschalten deaktiviert im Automatikmodus
         self.set_color(event.button.id)
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
@@ -60,19 +61,11 @@ class BlinkApp(App):
             self.query_one("#status", Static).update(f"Aktuelle Farbe: {emoji}")
             self.current_color = color_id
         
-        elif color_id == "blink_blue_while_green":
-            emoji = {"green": "🟢", "yellow": "🟡", "red": "🔴"}.get("green", "⚪")
-            self.query_one("#status", Static).update(f"Aktuelle Farbe: {emoji}")
+        elif color_id == "blink_blue":
+            current_color = self.current_color
             b1.play_pattern_local("3, #0261fa,0.1,1, #0a0a0a,0.1,1,  #0a0a0a,0.1,2, #0261fa,0.1,2")
-            b1.fade_to_color(100, "green")
-            self.current_color = "green"
-        
-        elif color_id == "blink_blue_while_yellow":
-            emoji = {"green": "🟢", "yellow": "🟡", "red": "🔴"}.get("yellow", "⚪")
-            self.query_one("#status", Static).update(f"Aktuelle Farbe: {emoji}")
-            b1.play_pattern_local("3, #0261fa,0.1,1, #0a0a0a,0.1,1,  #0a0a0a,0.1,2, #0261fa,0.1,2")
-            b1.fade_to_color(100, "yellow")
-            self.current_color = "yellow"
+            b1.fade_to_color(100, current_color)
+
 
 
     def load_credentials(self):
@@ -103,11 +96,11 @@ class BlinkApp(App):
             if start <= now <= end:
                 return "red"
             elif now <= start <= now + timedelta(minutes=5):
-                return "blink_blue_while_yellow"
+                self.current_color = "yellow"
+                return "blink_blue"
             elif now <= start <= now + timedelta(minutes=10):
-                return "blink_blue_while_green"
+                return "blink_blue"
 
-        return "green"
 
     async def on_mount(self) -> None:
         # Starte Hintergrundtask
