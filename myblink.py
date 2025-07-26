@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Button, Static, Switch
-from textual.containers import Container
+from textual.containers import Horizontal, Vertical
 from textual import log
 
 from google.oauth2.credentials import Credentials
@@ -26,38 +26,50 @@ class BlinkApp(App):
         self.automatik = True
         self.current_color = "green"
         self.creds = self.load_credentials()
-        self.override = False
-
+        self.skip_event_id = []
+        self.next_event = None
+        #self.set_color(self.current_color)
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Static("blink(1) Statuslicht", id="title")
-        yield Container(
+        yield Horizontal(
+            Vertical(
             Button("🟢 Grün", id="green", variant="success"),
             Button("🟡 Gelb", id="yellow", variant="warning"),
             Button("🔴 Rot", id="red", variant="error"),
-        )
-        yield Static("Override:")
-        yield Switch(name="Override", value=False, id="Override_switch")
-        #yield Static("OK", id="status_text")
+            Static(" ", id="spacer"),
+            Button("Skip this Event", id="skip", variant="default")
+        ),
+        Vertical(
+            Static("📅 Kalender-Infos", id="info_title"),
+            Static("Kein Laufendes Event", id="event_info"),
+            id="info_box"
+        ))
+        
         yield Static("Aktuelle Farbe: ⚪", id="status")
         yield Footer()
 
 
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         
-        #self.override(event.Switch.value)
-        self.set_color(event.button.id)
+        if event.button.id in ["green", "yellow", "red"]:
+            self.set_color(event.button.id)
+        elif event.button.id == "skip":
+            self.skip_event()
+    
+    def skip_event(self):
+        events = self.get_upcoming_events()
+        if len(events) > 0:
+            self.skip_event_id.append(events[0]["id"])
+        self.set_color("green")
 
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         
         if event.switch.id == "Override_switch":
             self.override = event.value
-
-
-    def on_switch_changed(self, event: Switch.Changed) -> None:
-        self.automatik = event.value
 
 
     def set_color(self, color_id: str):
@@ -76,7 +88,6 @@ class BlinkApp(App):
             b1.fade_to_color(100, current_color)
 
 
-
     def load_credentials(self):
         try:
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
@@ -90,35 +101,54 @@ class BlinkApp(App):
     def get_upcoming_events(self):
         service = build('calendar', 'v3', credentials=self.creds)
         now = datetime.utcnow().isoformat() + 'Z'
-        future = (datetime.utcnow() + timedelta(minutes=15)).isoformat() + 'Z'
+        future = (datetime.utcnow() + timedelta(minutes=45)).isoformat() + 'Z'
 
         events_result = service.events().list(calendarId='primary', timeMin=now,
                                               timeMax=future, singleEvents=True,
                                               orderBy='startTime').execute()
-        return events_result.get('items', [])
+        self.next_event = events_result.get('items', [])
+        return events_result.get('items',[])
+
 
     def determine_color_from_calendar(self, events):
         now = datetime.now(timezone.utc)
         for e in events:
-            start = parse(e["start"].get("dateTime") or e["start"]["date"])
-            end = parse(e["end"].get("dateTime") or e["end"]["date"])
-            if start <= now <= end and self.override == False:
-                return "red"
-            elif now <= start <= now + timedelta(minutes=5):
-                if self.override == False:
+            if e["id"] not in self.skip_event_id:
+                start = parse(e["start"].get("dateTime") or e["start"]["date"])
+                end = parse(e["end"].get("dateTime") or e["end"]["date"])
+                
+                if start <= now <= end:
+                    text = "Laufendes Event: " + e["summary"]
+                    self.query_one("#event_info", Static).update(text)
+                    return "red"
+                
+                elif now <= start <= now + timedelta(minutes=5):
+                    text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
+                    self.query_one("#event_info", Static).update(text) 
                     self.current_color = "yellow"
-                return "blink_blue"
-            elif now <= start <= now + timedelta(minutes=10):
-                return "blink_blue"
-
+                    return "blink_blue"
+                
+                elif now <= start <= now + timedelta(minutes=10):
+                    text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
+                    self.query_one("#event_info", Static).update(text)
+                    return "blink_blue"
+                
+                elif end < now:
+                    self.query_one("#event_info", Static).update("Kein laufendes Event")
+                    return "green"
+                    
+            else:
+                text = "Laufendes Event: " + e["summary"] + " übersprungen!"
+                self.query_one("#event_info", Static).update(text)
+                return "green"
 
     async def on_mount(self) -> None:
         # Starte Hintergrundtask
         self.set_interval(10, self.check_calendar)
-        
+
 
     async def check_calendar(self) -> None:
-        
+
         if not self.automatik:
             return
 #        try:
@@ -131,4 +161,3 @@ class BlinkApp(App):
 
 if __name__ == "__main__":
     BlinkApp().run()
-

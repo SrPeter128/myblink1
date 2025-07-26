@@ -23,7 +23,7 @@ def get_next_event(creds):
     service = build('calendar', 'v3', credentials=creds)
     now = datetime.utcnow()
     now_str = now.isoformat() + 'Z'
-    later_str = (now + timedelta(minutes=15)).isoformat() + 'Z'
+    later_str = (now + timedelta(minutes=150)).isoformat() + 'Z'
 
     events_result = service.events().list(
         calendarId='primary',
@@ -34,7 +34,8 @@ def get_next_event(creds):
     ).execute()
 
     events = events_result.get('items', [])
-
+    print("#####")
+    print(events)
     if events:
         e = events[0]
         summary = e.get("summary", "(Kein Titel)")
@@ -50,7 +51,7 @@ def main():
     while True:
         try:
             info = get_next_event(creds)
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] {info}")
+            print(f"[{datetime.now:while().strftime('%H:%M:%S')}] {info}")
         except Exception as e:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] FEHLER: {e}")
         time.sleep(10)
