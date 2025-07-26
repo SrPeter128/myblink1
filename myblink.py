@@ -26,6 +26,7 @@ class BlinkApp(App):
         self.automatik = True
         self.current_color = "green"
         self.creds = self.load_credentials()
+        self.override = False
 
 
     def compose(self) -> ComposeResult:
@@ -36,20 +37,28 @@ class BlinkApp(App):
             Button("🟡 Gelb", id="yellow", variant="warning"),
             Button("🔴 Rot", id="red", variant="error"),
         )
-        #yield Static("Override:")
-        #yield Switch(name="Override", value=True, id="Override_switch")
+        yield Static("Override:")
+        yield Switch(name="Override", value=False, id="Override_switch")
         #yield Static("OK", id="status_text")
         yield Static("Aktuelle Farbe: ⚪", id="status")
         yield Footer()
 
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         
-        #if not self.automatik:
-        #    return  # manuelles Umschalten deaktiviert im Automatikmodus
+        #self.override(event.Switch.value)
         self.set_color(event.button.id)
+
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        
+        if event.switch.id == "Override_switch":
+            self.override = event.value
+
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         self.automatik = event.value
+
 
     def set_color(self, color_id: str):
         
@@ -93,10 +102,11 @@ class BlinkApp(App):
         for e in events:
             start = parse(e["start"].get("dateTime") or e["start"]["date"])
             end = parse(e["end"].get("dateTime") or e["end"]["date"])
-            if start <= now <= end:
+            if start <= now <= end and self.override == False:
                 return "red"
             elif now <= start <= now + timedelta(minutes=5):
-                self.current_color = "yellow"
+                if self.override == False:
+                    self.current_color = "yellow"
                 return "blink_blue"
             elif now <= start <= now + timedelta(minutes=10):
                 return "blink_blue"
