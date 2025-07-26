@@ -1,0 +1,12 @@
+[workspace]
+authors = ["SrPeter128 <matthias.peter.kh@online.de>"]
+channels = ["conda-forge"]
+name = "myblink"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.13.5,<3.14"
+pip = ">=25.1.1,<26"
