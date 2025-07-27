@@ -145,7 +145,7 @@ class BlinkApp(App):
 
     async def on_mount(self) -> None:
         # Starte Hintergrundtask
-        self.set_interval(10, self.check_calendar)
+        self.set_interval(60, self.check_calendar)
 
 
     async def check_calendar(self) -> None:
