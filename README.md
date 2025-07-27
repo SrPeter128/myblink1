@@ -4,6 +4,8 @@ Here is a simple script to control my [blink(1)](https://blink1.thingm.com/). It
 
 The UI is made in the terminal using *textual*. This still needs some improvements.
 
+![UI Screenshot](./images/blink1_screenshot.png)
+
 ## Setup
 
 1. Generate a Google calendar API key
