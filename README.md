@@ -8,10 +8,11 @@ The UI is made in the terminal using *textual*. This still needs some improvemen
 
 ## Setup
 
-1. Generate a Google calendar API key
-2. place the credentials.json in the working dir 
-3. start the script --> will open a browser window and ask you to log in to google 
-4. Done
+1. Activate pixi env with `pixi shell` in the work dir 
+2. Generate a Google calendar API key
+3. place the credentials.json in the working dir 
+4. start the script --> will open a browser window and ask you to log in to google 
+5. Done
 
 ## What could be added? 
 
