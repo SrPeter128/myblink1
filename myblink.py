@@ -133,14 +133,15 @@ class BlinkApp(App):
                     self.query_one("#event_info", Static).update(text)
                     return "blink_blue"
                 
-                elif end < now:
-                    self.query_one("#event_info", Static).update("Kein laufendes Event")
-                    return "green"
-                    
             else:
                 text = "Laufendes Event: " + e["summary"] + " übersprungen!"
                 self.query_one("#event_info", Static).update(text)
                 return "green"
+        
+        text = "Keine anstehende Events"
+        self.query_one("#event_info", Static).update(text)
+        return "green"
+    
 
     async def on_mount(self) -> None:
         # Starte Hintergrundtask
