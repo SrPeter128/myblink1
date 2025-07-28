@@ -28,6 +28,7 @@ class BlinkApp(App):
         self.creds = self.load_credentials()
         self.skip_event_id = []
         self.next_event = None
+        self.manual = False
         #self.set_color(self.current_color)
 
     def compose(self) -> ComposeResult:
@@ -56,6 +57,7 @@ class BlinkApp(App):
         
         if event.button.id in ["green", "yellow", "red"]:
             self.set_color(event.button.id)
+            self.manual = True
         elif event.button.id == "skip":
             self.skip_event()
     
@@ -103,7 +105,7 @@ class BlinkApp(App):
         now = datetime.utcnow().isoformat() + 'Z'
         future = (datetime.utcnow() + timedelta(minutes=45)).isoformat() + 'Z'
 
-        events_result = service.events().list(calendarId='primary', timeMin=now,
+        events_result = service.events().list(calendarId='61e4vfig5o8a66nh9er40arcvepjrrir@import.calendar.google.com', timeMin=now,
                                               timeMax=future, singleEvents=True,
                                               orderBy='startTime').execute()
         self.next_event = events_result.get('items', [])
@@ -126,6 +128,7 @@ class BlinkApp(App):
                     text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
                     self.query_one("#event_info", Static).update(text) 
                     self.current_color = "yellow"
+                    self.manual = False
                     return "blink_blue"
                 
                 elif now <= start <= now + timedelta(minutes=10):
@@ -140,7 +143,9 @@ class BlinkApp(App):
         
         text = "Keine anstehende Events"
         self.query_one("#event_info", Static).update(text)
-        return "green"
+        
+        if not self.manual:
+            return "green"
     
 
     async def on_mount(self) -> None:
