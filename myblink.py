@@ -56,16 +56,20 @@ class BlinkApp(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         
         if event.button.id in ["green", "yellow", "red"]:
-            self.set_color(event.button.id)
+            self.current_color = event.button.id
             self.manual = True
         elif event.button.id == "skip":
             self.skip_event()
-    
+
+        self.set_color()
+   
+
     def skip_event(self):
         events = self.get_upcoming_events()
         if len(events) > 0:
             self.skip_event_id.append(events[0]["id"])
-        self.set_color("green")
+        self.current_color = "green"
+        self.set_color()
 
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
@@ -74,9 +78,10 @@ class BlinkApp(App):
             self.override = event.value
 
 
-    def set_color(self, color_id: str):
+    def set_color(self):
         
         b1 = Blink1()
+        color_id = self.current_color
         
         if color_id in ["red", "green", "yellow"]:
             emoji = {"green": "🟢", "yellow": "🟡", "red": "🔴"}.get(color_id, "⚪")
@@ -85,9 +90,8 @@ class BlinkApp(App):
             self.current_color = color_id
         
         elif color_id == "blink_blue":
-            current_color = self.current_color
             b1.play_pattern_local("3, #0261fa,0.1,1, #0a0a0a,0.1,1,  #0a0a0a,0.1,2, #0261fa,0.1,2")
-            b1.fade_to_color(100, current_color)
+            b1.fade_to_color(100, color_id)
 
 
     def load_credentials(self):
@@ -105,7 +109,7 @@ class BlinkApp(App):
         now = datetime.utcnow().isoformat() + 'Z'
         future = (datetime.utcnow() + timedelta(minutes=45)).isoformat() + 'Z'
 
-        events_result = service.events().list(calendarId='61e4vfig5o8a66nh9er40arcvepjrrir@import.calendar.google.com', timeMin=now,
+        events_result = service.events().list(calendarId='TRON', timeMin=now,
                                               timeMax=future, singleEvents=True,
                                               orderBy='startTime').execute()
         self.next_event = events_result.get('items', [])
@@ -122,24 +126,28 @@ class BlinkApp(App):
                 if start <= now <= end:
                     text = "Laufendes Event: " + e["summary"]
                     self.query_one("#event_info", Static).update(text)
-                    return "red"
+                    self.current_color = "red"
+                    return
                 
                 elif now <= start <= now + timedelta(minutes=5):
                     text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
                     self.query_one("#event_info", Static).update(text) 
                     self.current_color = "yellow"
                     self.manual = False
-                    return "blink_blue"
+                    self.set_color("blink_blue")
+                    return
                 
                 elif now <= start <= now + timedelta(minutes=10):
                     text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
                     self.query_one("#event_info", Static).update(text)
-                    return "blink_blue"
+                    self.set_color("blink_blue")
+                    return
                 
             else:
                 text = "Laufendes Event: " + e["summary"] + " übersprungen!"
                 self.query_one("#event_info", Static).update(text)
-                return "green"
+                self.set_color("green")
+                return
         
         text = "Keine anstehende Events"
         self.query_one("#event_info", Static).update(text)
@@ -147,10 +155,12 @@ class BlinkApp(App):
         if not self.manual:
             return "green"
     
+    def get_call_status(self):
+        pass
 
     async def on_mount(self) -> None:
-        # Starte Hintergrundtask
         self.set_interval(60, self.check_calendar)
+        self.set_interval(10, self.get_call_status)
 
 
     async def check_calendar(self) -> None:
@@ -159,8 +169,8 @@ class BlinkApp(App):
             return
 #        try:
         events = self.get_upcoming_events()
-        color = self.determine_color_from_calendar(events)
-        self.set_color(color)
+        self.determine_color_from_calendar(events)
+        self.set_color()
 #        except Exception as e:
 #            self.query_one("#status_text", Static).update(e)
 #            self.log(f"Kalenderfehler: {e}")
