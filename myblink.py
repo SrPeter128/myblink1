@@ -29,6 +29,7 @@ class BlinkApp(App):
         self.skip_event_id = []
         self.next_event = None
         self.manual = False
+        self.blink_blue = False
         #self.set_color(self.current_color)
 
     def compose(self) -> ComposeResult:
@@ -89,10 +90,10 @@ class BlinkApp(App):
             self.query_one("#status", Static).update(f"Aktuelle Farbe: {emoji}")
             self.current_color = color_id
         
-        elif color_id == "blink_blue":
-            b1.play_pattern_local("3, #0261fa,0.1,1, #0a0a0a,0.1,1,  #0a0a0a,0.1,2, #0261fa,0.1,2")
+        if self.blink_blue:
+            b1.play_pattern_local("6, #0261fa,0.1,1, #0a0a0a,0.1,1,  #0a0a0a,0.1,2, #0261fa,0.1,2")
             b1.fade_to_color(100, color_id)
-
+            self.blink_blue = False
 
     def load_credentials(self):
         try:
@@ -109,7 +110,8 @@ class BlinkApp(App):
         now = datetime.utcnow().isoformat() + 'Z'
         future = (datetime.utcnow() + timedelta(minutes=45)).isoformat() + 'Z'
 
-        events_result = service.events().list(calendarId='TRON', timeMin=now,
+        events_result = service.events().list(calendarId='61e4vfig5o8a66nh9er40arcvepjrrir@import.calendar.google.com'
+, timeMin=now,
                                               timeMax=future, singleEvents=True,
                                               orderBy='startTime').execute()
         self.next_event = events_result.get('items', [])
@@ -134,26 +136,31 @@ class BlinkApp(App):
                     self.query_one("#event_info", Static).update(text) 
                     self.current_color = "yellow"
                     self.manual = False
-                    self.set_color("blink_blue")
+                    self.blink_blue = True
+                    self.set_color()
                     return
                 
                 elif now <= start <= now + timedelta(minutes=10):
                     text = "Nächstes Event: "+ e["summary"] + " von " + str(start)[:-8] + " bis " + str(end)[:-8]
                     self.query_one("#event_info", Static).update(text)
-                    self.set_color("blink_blue")
+                    self.blink_blue = True
+                    self.set_color()
                     return
                 
             else:
                 text = "Laufendes Event: " + e["summary"] + " übersprungen!"
                 self.query_one("#event_info", Static).update(text)
-                self.set_color("green")
+                self.current_color = "green"
+                self.set_color()
                 return
         
         text = "Keine anstehende Events"
         self.query_one("#event_info", Static).update(text)
         
         if not self.manual:
-            return "green"
+            self.current_color = "green"
+            self.set
+            return
     
     def get_call_status(self):
         pass
