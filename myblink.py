@@ -159,7 +159,7 @@ class BlinkApp(App):
         
         if not self.manual:
             self.current_color = "green"
-            self.set
+            self.set_color()
             return
     
     def get_call_status(self):
